@@ -20,6 +20,7 @@ set(VERSION_FILE ${CMAKE_CURRENT_BINARY_DIR}/version.cpp)
 set(VERSION_FILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in)
 set(VERSION_CACHE_FILE ${CMAKE_CURRENT_BINARY_DIR}/version.cache)
 find_package(Git)
+
 add_custom_target(
   genversion
   COMMAND ${CMAKE_COMMAND} -D OUTPUT=${VERSION_FILE}
@@ -28,8 +29,8 @@ add_custom_target(
                            -D VERSION_EXTRA=${VERSION_EXTRA}
                            -D VERSION_CACHE_FILE=${VERSION_CACHE_FILE}
                            -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
-                           -P ${CMAKE_SOURCE_DIR}/scripts/genversion.cmake
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                           -P ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/genversion.cmake
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 add_custom_command(
@@ -163,14 +164,6 @@ include_directories(
   "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/program-options-lite"
 )
 
-add_executable (tmc3
-  ${PROJECT_CPP_FILES}
-  ${PROJECT_INC_FILES}
-  ${PROJECT_IN_FILES}
-  ${VERSION_FILE}
-)
-add_dependencies(tmc3 genversion)
-
 add_executable (ply-merge EXCLUDE_FROM_ALL
   "../tools/ply-merge.cpp"
   "misc.cpp"
@@ -180,4 +173,28 @@ add_executable (ply-merge EXCLUDE_FROM_ALL
 )
 add_dependencies(ply-merge genversion)
 
-install (TARGETS tmc3 DESTINATION bin)
+if ( COMPILE_TMC3_AS_EXE )
+    add_executable (${PROJECT_NAME}
+      ${PROJECT_CPP_FILES}
+      ${PROJECT_INC_FILES}
+      ${PROJECT_IN_FILES}
+      ${VERSION_FILE}
+    )
+    add_dependencies(${PROJECT_NAME} genversion)
+    install (TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+else()
+    # Otherwise, compile it as a library
+    add_library ("${PROJECT_NAME}lib" SHARED
+      ${PROJECT_CPP_FILES}
+      ${PROJECT_INC_FILES}
+      ${PROJECT_IN_FILES}
+      ${VERSION_FILE}
+    )
+    target_include_directories("${PROJECT_NAME}lib"
+        PUBLIC
+            "${PROJECT_SOURCE_DIR}/tmc3"
+    )
+
+endif()
+
